@@ -1,0 +1,22 @@
+{
+	# Email para Let's Encrypt
+	email {$EMAIL}
+}
+
+# Frontend (Next.js)
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy web:3000
+}
+
+# API (NestJS)
+api.{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy api:4000
+}
+
+# Redireccion de www al dominio principal.
+# Descomenta si creaste el registro DNS para www:
+# www.{$DOMAIN} {
+# 	redir https://{$DOMAIN}{uri} permanent
+# }

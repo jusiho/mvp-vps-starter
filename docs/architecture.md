@@ -1,0 +1,55 @@
+# Arquitectura
+
+Todo corre en **un solo VPS** con Docker Compose. Es la arquitectura más simple
+que te lleva a producción con HTTPS, base de datos y deploys repetibles.
+
+```
+                        Internet
+                           │
+                 ┌─────────▼─────────┐
+                 │   Caddy (:80/:443)│   TLS automático (Let's Encrypt)
+                 └────┬─────────┬────┘
+        tudominio.com │         │ api.tudominio.com
+                 ┌────▼───┐ ┌───▼────┐
+                 │  web   │ │  api   │
+                 │ Next.js│ │ NestJS │
+                 │  :3000 │ │  :4000 │
+                 └────────┘ └───┬────┘
+                                │
+                           ┌────▼────┐
+                           │   db    │
+                           │Postgres │
+                           │  :5432  │
+                           └─────────┘
+```
+
+## Servicios
+
+| Servicio | Imagen / Build        | Puerto interno | Expuesto a internet |
+| -------- | --------------------- | -------------- | ------------------- |
+| `caddy`  | `caddy:2-alpine`      | 80 / 443       | Sí (único expuesto) |
+| `web`    | `apps/web/Dockerfile` | 3000           | No (vía Caddy)      |
+| `api`    | `apps/api/Dockerfile` | 4000           | No (vía Caddy)      |
+| `db`     | `postgres:16-alpine`  | 5432           | No (solo localhost) |
+
+## Decisiones clave
+
+- **Caddy como reverse proxy**: obtiene y renueva certificados TLS solo.
+  Cero configuración de HTTPS.
+- **Un contenedor por responsabilidad**: frontend, backend y base de datos
+  separados. Puedes reiniciar o escalar cada uno sin tocar el resto.
+- **La red interna de Docker** conecta los servicios por nombre
+  (`web`, `api`, `db`). Solo Caddy publica puertos al exterior; Postgres
+  solo escucha en `127.0.0.1` de la máquina.
+- **Datos persistentes en volúmenes**: `pg_data` (base de datos) y
+  `caddy_data` (certificados). Un `docker compose down` no los borra.
+
+## Flujo de una petición
+
+1. El navegador pide `https://tudominio.com` → Caddy termina TLS y pasa a `web:3000`.
+2. El frontend llama a `https://api.tudominio.com` (variable `NEXT_PUBLIC_API_URL`).
+3. Caddy enruta ese subdominio a `api:4000`.
+4. El API habla con Postgres por la red interna usando `DATABASE_URL`.
+
+Más detalle de cada tecnología en [stack.md](stack.md). Para subirlo a un VPS,
+sigue [deployment.md](deployment.md).

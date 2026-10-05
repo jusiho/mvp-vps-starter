@@ -1,0 +1,5 @@
+# Los scripts corren en Linux (VPS): siempre con fin de linea LF,
+# aunque el repo se clone en Windows.
+*.sh text eol=lf
+Caddyfile text eol=lf
+Dockerfile text eol=lf

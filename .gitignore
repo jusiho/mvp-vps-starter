@@ -1,0 +1,8 @@
+# Secretos
+.env
+
+# Dependencias (las apps tienen sus propios .gitignore, esto es un respaldo)
+node_modules/
+
+# Respaldos de base de datos
+backups/
