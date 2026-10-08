@@ -1,7 +1,7 @@
 # Guía para agentes de IA (y humanos)
 
 Este repo es un **starter para levantar un MVP en un VPS** con Docker Compose:
-Next.js (web) + NestJS (api) + Prisma + PostgreSQL + Caddy. Lo usan
+Next.js (web) + NestJS (api) + Prisma + Better Auth + PostgreSQL + Caddy. Lo usan
 emprendedores que le describen a una IA lo que quieren construir. Tu trabajo es
 construirlo encima **sin romper la simplicidad ni la arquitectura**.
 
@@ -51,7 +51,8 @@ incluida tiene cambios respecto a versiones anteriores.
 
 **Base de datos**
 
-- Inyecta `PrismaService` (`src/infra/prisma`). Nunca hagas `new PrismaClient()`.
+- Inyecta `PrismaService` (`src/infra/prisma`). La única instancia vive ahí y
+  la comparte Better Auth; nunca hagas `new PrismaClient()`.
 - Cambios de esquema: edita `prisma/schema.prisma` y corre, desde la raíz,
   `npm run db:migrate -- --name <descripcion>`. Commitea `prisma/migrations`.
   Aplicarlas es automático: `npm run dev` en local y `entrypoint.sh` en
@@ -67,6 +68,29 @@ incluida tiene cambios respecto a versiones anteriores.
   `docker-compose.yml` (servicio `api`), en `.env.example` de la raíz y en
   `apps/api/.env.example`.
 - `GET /health` debe seguir respondiendo: lo usa el monitoreo.
+
+## Autenticación (Better Auth)
+
+- El API es el dueño: Better Auth corre dentro de NestJS
+  (`src/infra/auth/auth.ts`) con sus tablas en Prisma (`User`, `Session`,
+  `Account`, `Verification`). La web es solo un cliente.
+- Todo el API exige sesión por el guard global. Marca lo público con
+  `@AllowAnonymous()` (como `/health`) y lee el usuario con
+  `@Session() session: UserSession`. Ejemplo: `src/modules/users/users.controller.ts`.
+  Filtra siempre los datos por `session.user.id`.
+- En la web: los server components usan `getSession()` de `src/lib/session.ts`
+  y hacen `redirect("/login")` si no hay sesión; los client components usan
+  `authClient` de `src/lib/auth-client.ts` (`signIn.email`, `signUp.email`,
+  `signOut`, `useSession`). Las rutas privadas se listan en `src/proxy.ts`.
+- Datos extra del usuario (teléfono, rol...): agrégalos al modelo `User` de
+  Prisma y a `user.additionalFields` en `auth.ts`, y crea la migración. No
+  crees otra tabla de usuarios.
+- En tests (Jest) Better Auth se sustituye por `apps/api/test/mocks`: no hay
+  guard y `@Session()` entrega `TEST_USER`. Así se prueban rutas protegidas
+  sin login; el login real se prueba en el navegador con `npm run dev`.
+- Google, magic links, verificación de email, 2FA u organizaciones son
+  opciones o plugins de Better Auth en `auth.ts`: sigue su documentación
+  (https://www.better-auth.com/docs) antes de inventar algo propio.
 
 ## Frontend (`apps/web`)
 

@@ -41,8 +41,8 @@ cp .env.example .env
 nano .env
 ```
 
-Completa `DOMAIN`, `EMAIL` y una `POSTGRES_PASSWORD` fuerte
-(genera una con `openssl rand -base64 24`).
+Completa `DOMAIN`, `EMAIL`, una `POSTGRES_PASSWORD` fuerte y un
+`BETTER_AUTH_SECRET` (genera cada uno con `openssl rand -hex 32`).
 
 ## 5. Levanta todo
 
@@ -61,7 +61,8 @@ docker compose ps                      # todos los servicios "Up"
 curl https://api.tudominio.com/health  # {"status":"ok","db":"ok",...}
 ```
 
-Y abre `https://tudominio.com` en el navegador. 🎉
+Y abre `https://tudominio.com` en el navegador. 🎉 Crea tu cuenta en
+`https://tudominio.com/register`: la primera persona en registrarse eres tú.
 
 ## Actualizar (deploys siguientes)
 
@@ -95,5 +96,8 @@ bash scripts/backup-db.sh       # respaldo de la base de datos
 - **El API se reinicia en bucle** → casi siempre una migración falló. Revisa
   `docker compose logs api`: el contenedor no arranca el servidor hasta que la
   base de datos esté al día.
+- **Inicio sesión pero el panel me devuelve al login** → la cookie no se
+  comparte entre `tudominio.com` y `api.tudominio.com`. Revisa que entres por
+  https y que `COOKIE_DOMAIN` del compose sea `.tudominio.com`.
 - **El frontend no llega al API** → recuerda que `NEXT_PUBLIC_API_URL` se fija
   al **compilar**. Si cambiaste el dominio: `docker compose build web && docker compose up -d web`.

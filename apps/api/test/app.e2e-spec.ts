@@ -1,14 +1,18 @@
-// Prueba end-to-end: levanta la app completa y pega al endpoint real.
+// Prueba end-to-end: levanta la app completa y pega a los endpoints reales.
 // Necesita una base de datos (DATABASE_URL en apps/api/.env):
-//   docker compose up -d db   (desde la raíz del repo)
-//   npm run test:e2e
+//   npm run dev        (desde la raíz; levanta Postgres)
+//   npm run test:e2e   (en apps/api)
+//
+// Better Auth se sustituye por test/mocks: no hay guard y @Session() entrega
+// TEST_USER. Para probar el login real usa la app en el navegador.
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { TEST_USER } from './mocks/nestjs-better-auth';
 
-describe('HealthController (e2e)', () => {
+describe('API (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
@@ -26,6 +30,15 @@ describe('HealthController (e2e)', () => {
       .expect(200)
       .expect((res) => {
         expect(res.body).toMatchObject({ status: 'ok', db: 'ok' });
+      });
+  });
+
+  it('/users/me (GET) devuelve el usuario de la sesión', () => {
+    return request(app.getHttpServer())
+      .get('/users/me')
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toMatchObject({ email: TEST_USER.email });
       });
   });
 

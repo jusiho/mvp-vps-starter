@@ -10,6 +10,8 @@ VPS de ~$6/mes con Docker Compose.
 - **[NestJS](apps/api)** — API con TypeScript y endpoint `/health`
 - **Prisma** — ORM tipado: defines tus tablas en un archivo y las migraciones
   se aplican solas en cada deploy
+- **Better Auth** — registro e inicio de sesión listos (email y contraseña),
+  con sesiones seguras en la base de datos y todo el API protegido por defecto
 - **PostgreSQL** — base de datos con volumen persistente y script de respaldo
 - **Caddy** — HTTPS automático con Let's Encrypt (cero config de certificados)
 - **Docker Compose** — todo el sistema descrito en un archivo
@@ -52,7 +54,7 @@ mvp-vps-starter/
 
 ## Desarrollo local
 
-Requisitos: [Node.js 20+](https://nodejs.org) y
+Requisitos: [Node.js 22+](https://nodejs.org) y
 [Docker Desktop](https://www.docker.com/products/docker-desktop/) abierto.
 
 ```bash
@@ -60,7 +62,8 @@ npm run setup   # una sola vez: crea los .env, levanta Postgres, instala y migra
 npm run dev     # cada vez: arranca todo → http://localhost:3000
 ```
 
-Y ya. A partir de aquí pídele a la IA lo que quieras construir (Claude Code,
+Y ya. Crea tu cuenta en `http://localhost:3000/register` y entra a tu panel.
+A partir de aquí pídele a la IA lo que quieras construir (Claude Code,
 Cursor, Codex...): [AGENTS.md](AGENTS.md) le explica la arquitectura y las
 reglas. Cada `npm run dev` aplica solo los cambios pendientes en la base de
 datos; en producción el deploy hace lo mismo.

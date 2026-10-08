@@ -2,10 +2,15 @@
 //
 // Flujo de trabajo:
 //   1. Edita este archivo (agrega o cambia modelos).
-//   2. npm run db:migrate  -> crea la migracion en prisma/migrations y
-//                             regenera el cliente tipado.
-//   3. Commitea prisma/migrations: en produccion el contenedor del API las
-//      aplica solo al arrancar (ver entrypoint.sh).
+//   2. npm run db:migrate -- --name <que-cambiaste>  (desde la raiz del repo)
+//      -> crea la migracion en prisma/migrations y regenera el cliente tipado.
+//   3. Commitea prisma/migrations. Aplicarlas es automatico: "npm run dev" en
+//      local y el arranque del contenedor en produccion (entrypoint.sh).
+//
+// Los modelos User, Session, Account y Verification los usa Better Auth
+// (src/infra/auth/auth.ts). Puedes AGREGAR campos a User (phone, role...)
+// declarandolos tambien en user.additionalFields de auth.ts; no quites los
+// que ya estan.
 //
 // Docs: https://www.prisma.io/docs/orm/prisma-schema
 
@@ -18,11 +23,68 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Modelo de ejemplo: reemplazalo por los de tu negocio.
+// ── Autenticacion (Better Auth) ──────────────────────────────
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("session")
 }
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// ── Tu negocio ───────────────────────────────────────────────
+// Agrega aqui tus modelos (Product, Order...) y relacionalos con User.

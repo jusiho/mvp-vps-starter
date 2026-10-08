@@ -22,3 +22,7 @@ export class PrismaService
     await this.$disconnect();
   }
 }
+
+// Única instancia del proceso: Nest la inyecta como PrismaService y Better Auth
+// (src/infra/auth/auth.ts) la usa directamente. No crees otra.
+export const prisma = new PrismaService();

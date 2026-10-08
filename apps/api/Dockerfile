@@ -1,7 +1,8 @@
 # ---- Build ----
 FROM node:22-alpine AS builder
 WORKDIR /app
-COPY package.json package-lock.json ./
+# .npmrc va antes del npm ci: trae legacy-peer-deps (ver comentario en el archivo)
+COPY package.json package-lock.json .npmrc ./
 RUN npm ci
 COPY . .
 # Genera el cliente tipado de Prisma (queda en node_modules/.prisma) y compila

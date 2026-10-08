@@ -28,6 +28,9 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
     "@prisma/client": "^6.19.3",
+    "@thallesp/nestjs-better-auth": "^2.8.0",
+    "better-auth": "^1.7.7",
+    "dotenv": "^18.0.6",
     "prisma": "^6.19.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
@@ -72,6 +75,10 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@thallesp/nestjs-better-auth$": "<rootDir>/../test/mocks/nestjs-better-auth.ts",
+      "^better-auth(/.*)?$": "<rootDir>/../test/mocks/better-auth.ts"
+    }
   }
 }

@@ -50,6 +50,9 @@ async function setupEnv() {
     // Clave aleatoria en hex: sin símbolos que rompan DATABASE_URL.
     const password = randomBytes(24).toString("hex");
     content = content.replace(/^POSTGRES_PASSWORD=.*$/m, `POSTGRES_PASSWORD=${password}`);
+    // Secreto con el que Better Auth firma las sesiones.
+    const authSecret = randomBytes(32).toString("hex");
+    content = content.replace(/^BETTER_AUTH_SECRET=.*$/m, `BETTER_AUTH_SECRET=${authSecret}`);
 
     // Si el 5432 está ocupado (un Postgres instalado en la máquina), usa otro.
     let port = 5432;
@@ -57,13 +60,20 @@ async function setupEnv() {
     content = content.replace(/^POSTGRES_PORT=.*$/m, `POSTGRES_PORT=${port}`);
 
     writeFileSync(envPath, content);
-    ok(".env creado con una clave de Postgres aleatoria");
+    ok(".env creado con secretos aleatorios (Postgres y sesiones)");
     if (port !== 5432) warn(`El puerto 5432 estaba ocupado: Postgres usará el ${port}`);
   }
 
   const env = readEnv(envPath);
   for (const key of ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB"]) {
     if (!env[key]) fail(`Falta ${key} en .env`);
+  }
+  if (!env.BETTER_AUTH_SECRET) {
+    // .env de una versión anterior del starter: se completa sin pisarlo.
+    env.BETTER_AUTH_SECRET = randomBytes(32).toString("hex");
+    const current = readFileSync(envPath, "utf8").trimEnd();
+    writeFileSync(envPath, `${current}\nBETTER_AUTH_SECRET=${env.BETTER_AUTH_SECRET}\n`);
+    ok("BETTER_AUTH_SECRET agregado al .env");
   }
 
   const apiEnvPath = join(apiDir, ".env");
@@ -74,7 +84,9 @@ async function setupEnv() {
     const url = `postgresql://${env.POSTGRES_USER}:${env.POSTGRES_PASSWORD}@localhost:${port}/${env.POSTGRES_DB}`;
     writeFileSync(
       apiEnvPath,
-      `# Generado por "npm run setup" a partir del .env de la raiz.\nDATABASE_URL=${url}\n`,
+      `# Generado por "npm run setup" a partir del .env de la raiz.\n` +
+        `DATABASE_URL=${url}\n` +
+        `BETTER_AUTH_SECRET=${env.BETTER_AUTH_SECRET}\n`,
     );
     ok("apps/api/.env creado apuntando al Postgres local");
   }

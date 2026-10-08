@@ -54,6 +54,20 @@ automático: `npm run dev` en local y el arranque del contenedor en producción.
 > y la línea de migraciones de `entrypoint.sh`. `DATABASE_URL` sigue llegando
 > lista al contenedor.
 
+## Better Auth (autenticación) — `apps/api/src/infra/auth`
+
+- Registro, inicio y cierre de sesión con email y contraseña, listos desde el
+  primer deploy. Las sesiones viven en Postgres y viajan en una cookie
+  httpOnly: el navegador nunca ve un token.
+- Corre **dentro del API** (NestJS). La web solo consume `/api/auth`, y una
+  app móvil futura usaría exactamente lo mismo.
+- Todo el API está protegido por defecto; lo público se marca con
+  `@AllowAnonymous()`. Ejemplo de ruta privada: `GET /users/me`.
+- En producción la cookie se comparte entre `tudominio.com` y
+  `api.tudominio.com` (`COOKIE_DOMAIN`, que el compose arma desde `DOMAIN`).
+- Crecer (Google, magic links, 2FA, organizaciones, roles) son plugins de
+  Better Auth: se activan en `auth.ts` sin cambiar de librería.
+
 ## PostgreSQL (base de datos)
 
 - La base relacional por defecto de la industria: confiable, gratuita y con

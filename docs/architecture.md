@@ -44,6 +44,8 @@ que te lleva a producción con HTTPS, base de datos y deploys repetibles.
 - **Migraciones al arrancar**: el contenedor del API corre
   `prisma migrate deploy` antes de iniciar el servidor, así la base de datos
   siempre coincide con el código desplegado.
+- **Sesiones en el API**: Better Auth corre dentro de NestJS y emite una
+  cookie httpOnly para `.tudominio.com`, válida tanto en la web como en el API.
 - **Datos persistentes en volúmenes**: `pg_data` (base de datos) y
   `caddy_data` (certificados). Un `docker compose down` no los borra.
 
@@ -55,6 +57,7 @@ que te lleva a producción con HTTPS, base de datos y deploys repetibles.
    subdominio a `api:4000`.
 3. Desde el servidor de Next (server components, route handlers) va directo
    por la red interna a `http://api:4000` (`API_URL`), sin salir a internet.
+   Si hay sesión, la cookie viaja en ambas llamadas y el API la valida.
 4. El API habla con Postgres por la red interna usando `DATABASE_URL`
    (a través de Prisma).
 

@@ -10,6 +10,6 @@
     "check": "cd apps/api && npm run lint && npm test && npm run build && cd ../web && npm run lint && npm run build"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   }
 }
