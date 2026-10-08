@@ -1,0 +1,15 @@
+{
+  "name": "mvp-vps-starter",
+  "private": true,
+  "description": "Starter para levantar un MVP en un VPS: Next.js + NestJS + Prisma + Postgres + Caddy",
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "node scripts/dev.mjs",
+    "db:migrate": "cd apps/api && npm run db:migrate --",
+    "db:studio": "cd apps/api && npm run db:studio",
+    "check": "cd apps/api && npm run lint && npm test && npm run build && cd ../web && npm run lint && npm run build"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

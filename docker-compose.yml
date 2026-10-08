@@ -62,8 +62,9 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
     ports:
-      # Solo accesible desde la propia maquina (util para desarrollo y debugging)
-      - "127.0.0.1:5432:5432"
+      # Solo accesible desde la propia maquina (desarrollo local y debugging).
+      # POSTGRES_PORT viene del .env; "npm run setup" lo cambia si 5432 esta ocupado.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s

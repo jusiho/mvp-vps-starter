@@ -5,6 +5,10 @@ Next.js (web) + NestJS (api) + Prisma + PostgreSQL + Caddy. Lo usan
 emprendedores que le describen a una IA lo que quieren construir. Tu trabajo es
 construirlo encima **sin romper la simplicidad ni la arquitectura**.
 
+**Quién usa esto:** un emprendedor que no programa. Su flujo es `npm run setup`
+una vez y `npm run dev` siempre; todo lo demás lo haces tú. No le pidas pasos
+manuales: si algo necesita un comando, córrelo tú o automatízalo en `scripts/`.
+
 Antes de tocar `apps/web`, lee `apps/web/AGENTS.md`: la versión de Next.js
 incluida tiene cambios respecto a versiones anteriores.
 
@@ -48,9 +52,10 @@ incluida tiene cambios respecto a versiones anteriores.
 **Base de datos**
 
 - Inyecta `PrismaService` (`src/infra/prisma`). Nunca hagas `new PrismaClient()`.
-- Cambios de esquema: edita `prisma/schema.prisma` y corre
-  `npm run db:migrate -- --name <descripcion>`. Commitea `prisma/migrations`;
-  producción las aplica sola al arrancar (`entrypoint.sh`).
+- Cambios de esquema: edita `prisma/schema.prisma` y corre, desde la raíz,
+  `npm run db:migrate -- --name <descripcion>`. Commitea `prisma/migrations`.
+  Aplicarlas es automático: `npm run dev` en local y `entrypoint.sh` en
+  producción. Nunca le pidas al usuario que migre a mano.
 - No edites una migración ya aplicada: crea una nueva.
 
 **Convenciones**
@@ -88,8 +93,7 @@ incluida tiene cambios respecto a versiones anteriores.
 ## Antes de dar algo por terminado
 
 ```bash
-cd apps/api && npm run lint && npm test && npm run build
-cd apps/web && npm run lint && npm run build
+npm run check               # lint + tests + build de api y web, desde la raíz
 docker compose build        # si tocaste Dockerfiles o docker-compose.yml
 ```
 

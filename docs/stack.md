@@ -12,7 +12,7 @@ producción** y que no te estorba cuando el MVP crece.
   toma `API_URL` (red interna, `http://api:4000`) y en el navegador
   `NEXT_PUBLIC_API_URL` (`https://api.tudominio.com`, fijada en el build).
 
-**Desarrollo local:** `cd apps/web && npm run dev` → http://localhost:3000
+**Desarrollo local:** `npm run dev` en la raíz arranca web y api juntos → http://localhost:3000
 
 ## NestJS (backend) — `apps/api`
 
@@ -24,7 +24,7 @@ producción** y que no te estorba cuando el MVP crece.
 - Estructura sugerida: `src/infra/` para piezas técnicas (base de datos,
   colas, storage) y `src/modules/` para tu negocio (usuarios, pedidos...).
 
-**Desarrollo local:** `cd apps/api && npm run start:dev` → http://localhost:4000
+**Desarrollo local:** `npm run dev` en la raíz arranca web y api juntos → http://localhost:4000/health
 
 ## Prisma (ORM) — `apps/api/prisma`
 
@@ -42,11 +42,13 @@ producción** y que no te estorba cuando el MVP crece.
 **Flujo de trabajo:**
 
 ```bash
-cd apps/api
-# 1. edita prisma/schema.prisma
-npm run db:migrate      # crea la migración y regenera el cliente
-npm run db:studio       # (opcional) explora tus datos en el navegador
+# 1. edita apps/api/prisma/schema.prisma (normalmente lo hace la IA)
+npm run db:migrate -- --name <que-cambiaste>   # crea la migración y regenera el cliente
+npm run db:studio                              # (opcional) explora tus datos en el navegador
 ```
+
+Lo único que requiere intención es *crear* la migración. Aplicarla es
+automático: `npm run dev` en local y el arranque del contenedor en producción.
 
 > ¿Prefieres otro ORM (Drizzle, TypeORM)? Borra `prisma/`, `src/infra/prisma`
 > y la línea de migraciones de `entrypoint.sh`. `DATABASE_URL` sigue llegando

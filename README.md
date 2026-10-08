@@ -13,7 +13,8 @@ VPS de ~$6/mes con Docker Compose.
 - **PostgreSQL** — base de datos con volumen persistente y script de respaldo
 - **Caddy** — HTTPS automático con Let's Encrypt (cero config de certificados)
 - **Docker Compose** — todo el sistema descrito en un archivo
-- **Scripts** — preparar el VPS, desplegar y respaldar con un comando
+- **Scripts** — preparar tu máquina o el VPS, desplegar y respaldar, cada uno
+  con un comando
 - **Guía para la IA** — [AGENTS.md](AGENTS.md) le explica la arquitectura a
   Claude Code, Cursor o Codex para que construyan encima sin romperla
 
@@ -23,6 +24,7 @@ VPS de ~$6/mes con Docker Compose.
 mvp-vps-starter/
 ├── README.md
 ├── AGENTS.md               # arquitectura y convenciones (para ti y para la IA)
+├── package.json            # npm run setup · npm run dev
 ├── docker-compose.yml      # describe todos los servicios
 ├── .env.example            # variables de entorno (copiar a .env)
 │
@@ -41,6 +43,8 @@ mvp-vps-starter/
 │   └── caddy/              # Caddyfile (reverse proxy + TLS)
 │
 └── scripts/
+    ├── setup.mjs           # prepara tu máquina para desarrollar (una vez)
+    ├── dev.mjs             # arranca web + api en local
     ├── setup-vps.sh        # prepara un VPS recién creado
     ├── deploy.sh           # actualiza producción
     └── backup-db.sh        # respalda la base de datos
@@ -48,30 +52,21 @@ mvp-vps-starter/
 
 ## Desarrollo local
 
-Requisitos: Node.js 20+ y Docker (para Postgres).
+Requisitos: [Node.js 20+](https://nodejs.org) y
+[Docker Desktop](https://www.docker.com/products/docker-desktop/) abierto.
 
 ```bash
-# 1. Base de datos (desde la raíz del repo)
-cp .env.example .env
-docker compose up -d db                   # Postgres en localhost:5432
-
-# 2. Backend
-cd apps/api
-cp .env.example .env                      # DATABASE_URL apunta al Postgres de arriba
-npm install
-npm run db:migrate                        # crea las tablas y genera el cliente de Prisma
-npm run start:dev                         # http://localhost:4000/health
-
-# 3. Frontend (en otra terminal)
-cd apps/web && npm install && npm run dev # http://localhost:3000
+npm run setup   # una sola vez: crea los .env, levanta Postgres, instala y migra
+npm run dev     # cada vez: arranca todo → http://localhost:3000
 ```
 
-Para cambiar la base de datos edita `apps/api/prisma/schema.prisma` y vuelve a
-correr `npm run db:migrate`. Con `npm run db:studio` ves tus datos en el navegador.
+Y ya. A partir de aquí pídele a la IA lo que quieras construir (Claude Code,
+Cursor, Codex...): [AGENTS.md](AGENTS.md) le explica la arquitectura y las
+reglas. Cada `npm run dev` aplica solo los cambios pendientes en la base de
+datos; en producción el deploy hace lo mismo.
 
-> ¿El puerto 5432 ya está ocupado en tu máquina (un Postgres instalado)? Cambia
-> `127.0.0.1:5432:5432` por `127.0.0.1:5433:5432` en `docker-compose.yml` y usa
-> `localhost:5433` en `apps/api/.env`.
+> `npm run setup` se puede relanzar cuando quieras: no pisa tu `.env`. Si el
+> puerto 5432 ya está ocupado en tu máquina, elige otro automáticamente.
 
 ## Deploy a producción
 
