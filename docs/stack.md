@@ -8,6 +8,9 @@ producción** y que no te estorba cuando el MVP crece.
 - React con App Router, TypeScript y Tailwind CSS.
 - Server components y SSR incluidos: bueno para SEO de tu landing y rapidez.
 - Compila a modo `standalone`, así la imagen Docker pesa poco.
+- Para hablar con el API usa `apiUrl()` de `src/lib/api.ts`: en el servidor
+  toma `API_URL` (red interna, `http://api:4000`) y en el navegador
+  `NEXT_PUBLIC_API_URL` (`https://api.tudominio.com`, fijada en el build).
 
 **Desarrollo local:** `cd apps/web && npm run dev` → http://localhost:3000
 
@@ -15,14 +18,39 @@ producción** y que no te estorba cuando el MVP crece.
 
 - Framework Node con TypeScript, estructura clara (módulos, controladores,
   servicios) que escala bien cuando el equipo crece.
-- Incluye endpoint `GET /health` para monitoreo.
+- Incluye endpoint `GET /health` que también verifica la conexión a la base
+  de datos (responde 503 si Postgres no contesta): ideal para monitoreo.
 - CORS configurado por la variable `CORS_ORIGIN`.
+- Estructura sugerida: `src/infra/` para piezas técnicas (base de datos,
+  colas, storage) y `src/modules/` para tu negocio (usuarios, pedidos...).
 
 **Desarrollo local:** `cd apps/api && npm run start:dev` → http://localhost:4000
 
-> El API no trae ORM para no imponerte uno. Opciones recomendadas:
-> **Prisma** (el más popular) o **TypeORM** (integración clásica con Nest).
-> La variable `DATABASE_URL` ya llega lista al contenedor.
+## Prisma (ORM) — `apps/api/prisma`
+
+- Defines tus tablas en un solo archivo legible
+  ([schema.prisma](../apps/api/prisma/schema.prisma)) y Prisma genera un
+  cliente **tipado**: el editor autocompleta campos y detecta errores antes
+  de ejecutar nada.
+- Migraciones incluidas: cada cambio al schema se convierte en SQL versionado
+  en `prisma/migrations`, y el contenedor del API las aplica solo al arrancar
+  ([entrypoint.sh](../apps/api/entrypoint.sh)). Deploy = `git push` +
+  `deploy.sh`, sin pasos manuales en la base de datos.
+- `PrismaService` ya está registrado como módulo global de Nest: inyéctalo
+  en cualquier servicio y consulta (`this.prisma.user.findMany()`).
+
+**Flujo de trabajo:**
+
+```bash
+cd apps/api
+# 1. edita prisma/schema.prisma
+npm run db:migrate      # crea la migración y regenera el cliente
+npm run db:studio       # (opcional) explora tus datos en el navegador
+```
+
+> ¿Prefieres otro ORM (Drizzle, TypeORM)? Borra `prisma/`, `src/infra/prisma`
+> y la línea de migraciones de `entrypoint.sh`. `DATABASE_URL` sigue llegando
+> lista al contenedor.
 
 ## PostgreSQL (base de datos)
 

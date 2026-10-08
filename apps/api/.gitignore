@@ -1,0 +1,11 @@
+# Compilado (lo genera `npm run build` y el Dockerfile)
+/dist
+
+# Dependencias
+/node_modules
+
+# Cobertura de tests
+/coverage
+
+# Secretos de desarrollo local (copia .env.example a .env)
+.env

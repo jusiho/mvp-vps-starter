@@ -8,22 +8,28 @@ VPS de ~$6/mes con Docker Compose.
 
 - **[Next.js](apps/web)** — frontend con TypeScript y Tailwind CSS
 - **[NestJS](apps/api)** — API con TypeScript y endpoint `/health`
+- **Prisma** — ORM tipado: defines tus tablas en un archivo y las migraciones
+  se aplican solas en cada deploy
 - **PostgreSQL** — base de datos con volumen persistente y script de respaldo
 - **Caddy** — HTTPS automático con Let's Encrypt (cero config de certificados)
 - **Docker Compose** — todo el sistema descrito en un archivo
 - **Scripts** — preparar el VPS, desplegar y respaldar con un comando
+- **Guía para la IA** — [AGENTS.md](AGENTS.md) le explica la arquitectura a
+  Claude Code, Cursor o Codex para que construyan encima sin romperla
 
 ## Estructura
 
 ```
 mvp-vps-starter/
 ├── README.md
+├── AGENTS.md               # arquitectura y convenciones (para ti y para la IA)
 ├── docker-compose.yml      # describe todos los servicios
 ├── .env.example            # variables de entorno (copiar a .env)
 │
 ├── apps/
 │   ├── web/                # Next.js (frontend)
 │   └── api/                # NestJS (backend)
+│       └── prisma/         # schema de la base de datos + migraciones
 │
 ├── docs/
 │   ├── architecture.md     # cómo encajan las piezas
@@ -42,22 +48,30 @@ mvp-vps-starter/
 
 ## Desarrollo local
 
-Requisitos: Node.js 20+ y (opcional) Docker.
+Requisitos: Node.js 20+ y Docker (para Postgres).
 
 ```bash
-# Terminal 1 — frontend
-cd apps/web && npm install && npm run dev     # http://localhost:3000
-
-# Terminal 2 — backend
-cd apps/api && npm install && npm run start:dev   # http://localhost:4000
-```
-
-¿Necesitas Postgres en local? Con Docker:
-
-```bash
+# 1. Base de datos (desde la raíz del repo)
 cp .env.example .env
-docker compose up -d db     # queda en localhost:5432
+docker compose up -d db                   # Postgres en localhost:5432
+
+# 2. Backend
+cd apps/api
+cp .env.example .env                      # DATABASE_URL apunta al Postgres de arriba
+npm install
+npm run db:migrate                        # crea las tablas y genera el cliente de Prisma
+npm run start:dev                         # http://localhost:4000/health
+
+# 3. Frontend (en otra terminal)
+cd apps/web && npm install && npm run dev # http://localhost:3000
 ```
+
+Para cambiar la base de datos edita `apps/api/prisma/schema.prisma` y vuelve a
+correr `npm run db:migrate`. Con `npm run db:studio` ves tus datos en el navegador.
+
+> ¿El puerto 5432 ya está ocupado en tu máquina (un Postgres instalado)? Cambia
+> `127.0.0.1:5432:5432` por `127.0.0.1:5433:5432` en `docker-compose.yml` y usa
+> `localhost:5433` en `apps/api/.env`.
 
 ## Deploy a producción
 
@@ -87,3 +101,5 @@ Para actualizar después: `bash scripts/deploy.sh`.
 3. **Sin vendor lock-in** — todo corre en cualquier máquina Linux.
 4. **Valida primero, escala después** — [docs/scaling.md](docs/scaling.md)
    te dice cuándo y cómo.
+5. **Pensado para construir con IA** — describe lo que quieres y
+   [AGENTS.md](AGENTS.md) se encarga de que salga con buena arquitectura.

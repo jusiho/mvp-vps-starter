@@ -51,13 +51,14 @@ docker compose up -d --build
 ```
 
 El primer build toma varios minutos. Caddy pedirá los certificados TLS
-automáticamente en cuanto el DNS resuelva.
+automáticamente en cuanto el DNS resuelva. El API aplica las migraciones de
+Prisma por sí solo antes de arrancar, así que la base de datos queda lista.
 
 **Verifica:**
 
 ```bash
 docker compose ps                      # todos los servicios "Up"
-curl https://api.tudominio.com/health  # {"status":"ok"}
+curl https://api.tudominio.com/health  # {"status":"ok","db":"ok",...}
 ```
 
 Y abre `https://tudominio.com` en el navegador. 🎉
@@ -71,6 +72,9 @@ ssh root@IP-DEL-VPS
 cd app && bash scripts/deploy.sh
 ```
 
+Si el cambio incluye migraciones nuevas en `prisma/migrations`, el API las
+aplica automáticamente al reiniciar. No hay que tocar la base de datos a mano.
+
 ## Comandos útiles
 
 ```bash
@@ -78,6 +82,7 @@ docker compose logs -f           # logs de todo en vivo
 docker compose logs -f api      # logs solo del API
 docker compose restart web      # reiniciar un servicio
 docker compose exec db psql -U app app   # consola de Postgres
+docker compose exec api node_modules/.bin/prisma migrate status   # estado de las migraciones
 bash scripts/backup-db.sh       # respaldo de la base de datos
 ```
 
@@ -87,5 +92,8 @@ bash scripts/backup-db.sh       # respaldo de la base de datos
   80/443 están cerrados. Revisa `docker compose logs caddy` y `ufw status`.
 - **El build de web falla por memoria** → VPS con 1 GB de RAM. Agrega swap:
   `fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile`
+- **El API se reinicia en bucle** → casi siempre una migración falló. Revisa
+  `docker compose logs api`: el contenedor no arranca el servidor hasta que la
+  base de datos esté al día.
 - **El frontend no llega al API** → recuerda que `NEXT_PUBLIC_API_URL` se fija
   al **compilar**. Si cambiaste el dominio: `docker compose build web && docker compose up -d web`.

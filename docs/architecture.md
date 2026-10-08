@@ -41,15 +41,22 @@ que te lleva a producción con HTTPS, base de datos y deploys repetibles.
 - **La red interna de Docker** conecta los servicios por nombre
   (`web`, `api`, `db`). Solo Caddy publica puertos al exterior; Postgres
   solo escucha en `127.0.0.1` de la máquina.
+- **Migraciones al arrancar**: el contenedor del API corre
+  `prisma migrate deploy` antes de iniciar el servidor, así la base de datos
+  siempre coincide con el código desplegado.
 - **Datos persistentes en volúmenes**: `pg_data` (base de datos) y
   `caddy_data` (certificados). Un `docker compose down` no los borra.
 
 ## Flujo de una petición
 
 1. El navegador pide `https://tudominio.com` → Caddy termina TLS y pasa a `web:3000`.
-2. El frontend llama a `https://api.tudominio.com` (variable `NEXT_PUBLIC_API_URL`).
-3. Caddy enruta ese subdominio a `api:4000`.
-4. El API habla con Postgres por la red interna usando `DATABASE_URL`.
+2. El frontend llama al API. Desde el navegador va a
+   `https://api.tudominio.com` (`NEXT_PUBLIC_API_URL`) y Caddy enruta ese
+   subdominio a `api:4000`.
+3. Desde el servidor de Next (server components, route handlers) va directo
+   por la red interna a `http://api:4000` (`API_URL`), sin salir a internet.
+4. El API habla con Postgres por la red interna usando `DATABASE_URL`
+   (a través de Prisma).
 
 Más detalle de cada tecnología en [stack.md](stack.md). Para subirlo a un VPS,
 sigue [deployment.md](deployment.md).
