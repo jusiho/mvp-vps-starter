@@ -49,6 +49,13 @@ que te lleva a producción con HTTPS, base de datos y deploys repetibles.
 - **Datos persistentes en volúmenes**: `pg_data` (base de datos) y
   `caddy_data` (certificados). Un `docker compose down` no los borra.
 
+## Cómo se organiza el código
+
+Por funcionalidad de negocio, en los dos lados: `apps/api/src/modules/<dominio>`
+y `apps/web/src/features/<feature>`. No es atomic design ni capas genéricas:
+cada feature tiene junto todo lo suyo. [AGENTS.md](../AGENTS.md) lo detalla y
+`notes` es el ejemplo completo de punta a punta.
+
 ## Flujo de una petición
 
 1. El navegador pide `https://tudominio.com` → Caddy termina TLS y pasa a `web:3000`.

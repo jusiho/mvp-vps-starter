@@ -17,6 +17,8 @@ VPS de ~$6/mes con Docker Compose.
 - **Docker Compose** — todo el sistema descrito en un archivo
 - **Scripts** — preparar tu máquina o el VPS, desplegar y respaldar, cada uno
   con un comando
+- **Un ejemplo completo (Notas)** — módulo en el API, pantalla en la web y
+  tests, para que la IA copie el patrón en cada funcionalidad nueva
 - **Guía para la IA** — [AGENTS.md](AGENTS.md) le explica la arquitectura a
   Claude Code, Cursor o Codex para que construyan encima sin romperla
 

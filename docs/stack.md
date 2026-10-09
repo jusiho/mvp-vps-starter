@@ -6,6 +6,9 @@ producción** y que no te estorba cuando el MVP crece.
 ## Next.js (frontend) — `apps/web`
 
 - React con App Router, TypeScript y Tailwind CSS.
+- Organizado por features: `src/app` solo enruta, `src/features/<feature>`
+  tiene cada pantalla, `src/components` lo compartido. Las páginas privadas
+  viven en el grupo `(app)`, que verifica la sesión y pone la navegación.
 - Server components y SSR incluidos: bueno para SEO de tu landing y rapidez.
 - Compila a modo `standalone`, así la imagen Docker pesa poco.
 - Para hablar con el API usa `apiUrl()` de `src/lib/api.ts`: en el servidor
@@ -21,8 +24,9 @@ producción** y que no te estorba cuando el MVP crece.
 - Incluye endpoint `GET /health` que también verifica la conexión a la base
   de datos (responde 503 si Postgres no contesta): ideal para monitoreo.
 - CORS configurado por la variable `CORS_ORIGIN`.
-- Estructura sugerida: `src/infra/` para piezas técnicas (base de datos,
-  colas, storage) y `src/modules/` para tu negocio (usuarios, pedidos...).
+- Un módulo por dominio en `src/modules/` (controller, service y esquemas
+  Zod de validación), `src/infra/` para lo técnico y `src/common/` para lo
+  transversal. `notes` es el ejemplo completo que la IA copia.
 
 **Desarrollo local:** `npm run dev` en la raíz arranca web y api juntos → http://localhost:4000/health
 

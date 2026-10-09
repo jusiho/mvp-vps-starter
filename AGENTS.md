@@ -26,33 +26,71 @@ incluida tiene cambios respecto a versiones anteriores.
 
 ## Mapa del repo
 
-| Ruta                     | Qué es                                          |
-| ------------------------ | ----------------------------------------------- |
-| `apps/web`               | Frontend Next.js (App Router, Tailwind)         |
-| `apps/api`               | Backend NestJS + Prisma                         |
-| `apps/api/prisma`        | `schema.prisma` + migraciones                   |
-| `docker-compose.yml`     | Todos los servicios de producción               |
-| `infra/caddy/Caddyfile`  | Reverse proxy + HTTPS automático                |
-| `scripts/`               | Preparar el VPS, desplegar, respaldar           |
-| `docs/`                  | Arquitectura, stack, deploy, escalamiento       |
+| Ruta                       | Qué es                                            |
+| -------------------------- | ------------------------------------------------- |
+| `apps/web/src/app`         | Solo rutas de Next.js (páginas delgadas)          |
+| `apps/web/src/features`    | Pantallas y su lógica, una carpeta por feature    |
+| `apps/web/src/components`  | UI compartida (AppShell, formularios, botones)    |
+| `apps/web/src/lib`         | Utilidades: llamadas al API, sesión               |
+| `apps/api/src/modules`     | Un módulo por dominio de negocio                  |
+| `apps/api/src/infra`       | Técnico: Prisma, Better Auth                      |
+| `apps/api/src/common`      | Pipes, guards, decoradores y utilidades sin negocio |
+| `apps/api/prisma`          | `schema.prisma` + migraciones                     |
+| `docker-compose.yml`       | Todos los servicios de producción                 |
+| `infra/caddy/Caddyfile`    | Reverse proxy + HTTPS automático                  |
+| `scripts/`                 | Preparar la máquina o el VPS, desplegar, respaldar |
+| `docs/`                    | Arquitectura, stack, deploy, escalamiento         |
+
+## Arquitectura: features en la web, módulos en el API
+
+No es atomic design ni clean architecture por capas: el código se agrupa por
+**funcionalidad de negocio**, igual en los dos lados.
+
+- **Web:** `src/app` solo enruta; cada página es delgada, lee datos en el
+  servidor y renderiza un componente de `src/features/<feature>`. Lo que se
+  comparte entre features vive en `src/components`, `src/lib` y `src/hooks`.
+- **API:** `src/modules/<dominio>` con controller (HTTP), service (lógica y
+  Prisma) y schemas (Zod). `src/infra` para piezas técnicas y `src/common`
+  para lo transversal sin negocio.
+- **El ejemplo completo es Notas:** `apps/api/src/modules/notes`,
+  `apps/web/src/features/notes` y `apps/web/src/app/(app)/notes`. Copia ese
+  patrón para cada funcionalidad nueva y borra Notas cuando ya no haga falta.
 
 ## Backend (`apps/api`)
 
 **Dónde va cada cosa**
 
-- `src/modules/<feature>/`: una carpeta por funcionalidad de negocio
-  (`products`, `orders`...). Dentro: `<feature>.module.ts`,
-  `<feature>.controller.ts` (rutas HTTP y validación de entrada),
-  `<feature>.service.ts` (lógica y acceso a datos) y `dto/` si hace falta.
-  Registra el módulo en `src/app.module.ts`.
-- `src/infra/`: solo piezas técnicas (Prisma hoy; colas, storage o email
-  mañana). Nada de negocio aquí.
-- Los controladores no tocan Prisma directamente: llaman a un servicio.
+- `src/modules/<feature>/`: `<feature>.module.ts`, `<feature>.controller.ts`
+  (rutas HTTP: valida la entrada, saca el usuario de la sesión y delega),
+  `<feature>.service.ts` (lógica y acceso a datos con Prisma) y
+  `<feature>.schemas.ts` (esquemas Zod de entrada y sus tipos). Registra el
+  módulo en `src/app.module.ts`.
+- `src/infra/`: solo piezas técnicas (Prisma y Better Auth hoy; colas,
+  storage o email mañana). Nada de negocio aquí.
+- `src/common/`: `pipes/` (ZodValidationPipe), y cuando hagan falta `guards/`,
+  `decorators/` y `utils/`. Nada que conozca un dominio concreto.
+- Los controladores no tocan Prisma directamente: llaman a un service.
+
+**Reglas de una ruta**
+
+- Valida el body con `@Body(new ZodValidationPipe(schema))`. El pipe responde
+  400 con `{ message, errors: [{ path, message }] }`; no valides a mano.
+- Lee el usuario con `@Session() session: UserSession` y pásale
+  `session.user.id` al service. Toda consulta de negocio filtra por el
+  usuario. Para editar o borrar usa `updateMany`/`deleteMany` con
+  `{ id, userId }` y responde 404 si no afectó filas (ver `NotesService.remove`).
+- Errores: lanza excepciones de Nest (`NotFoundException`,
+  `BadRequestException`...). Nunca devuelvas 200 con un "error" dentro.
+- Respuestas: el JSON del modelo tal cual. POST responde 201 (Nest por
+  defecto) y DELETE 204 (`@HttpCode(204)`).
 
 **Base de datos**
 
 - Inyecta `PrismaService` (`src/infra/prisma`). La única instancia vive ahí y
   la comparte Better Auth; nunca hagas `new PrismaClient()`.
+- Modelos nuevos: `userId` + relación con `User` + `@@index([userId])`, como
+  `Note`. Las tablas de auth (`User`, `Session`, `Account`, `Verification`)
+  no se tocan salvo para agregar campos a `User`.
 - Cambios de esquema: edita `prisma/schema.prisma` y corre, desde la raíz,
   `npm run db:migrate -- --name <descripcion>`. Commitea `prisma/migrations`.
   Aplicarlas es automático: `npm run dev` en local y `entrypoint.sh` en
@@ -61,13 +99,17 @@ incluida tiene cambios respecto a versiones anteriores.
 
 **Convenciones**
 
-- Código y nombres en inglés; comentarios y documentación en español.
-- Valida la entrada en el controlador con DTOs. Si necesitas una librería,
-  `class-validator` + `ValidationPipe` es la opción estándar de Nest.
+- Código y nombres en inglés; comentarios, mensajes y documentación en español.
 - Variable de entorno nueva: léela con `process.env` y declárala en
   `docker-compose.yml` (servicio `api`), en `.env.example` de la raíz y en
   `apps/api/.env.example`.
 - `GET /health` debe seguir respondiendo: lo usa el monitoreo.
+
+**Tests**
+
+- Unitarios junto al archivo (`*.spec.ts`) con Prisma simulado por `useValue`
+  (ver `notes.service.spec.ts`). End-to-end en `test/` contra la base local
+  (ver `test/app.e2e-spec.ts`); ahí Better Auth está simulado (ver abajo).
 
 ## Autenticación (Better Auth)
 
@@ -94,16 +136,47 @@ incluida tiene cambios respecto a versiones anteriores.
 
 ## Frontend (`apps/web`)
 
-- App Router en `src/app/`. Componentes reutilizables en `src/components/`,
-  utilidades en `src/lib/`. El alias `@/` apunta a `src/`.
-- Para llamar al API usa `apiUrl()` de `src/lib/api.ts`. Elige sola la URL
-  correcta: `API_URL` (red interna de Docker) en el servidor y
-  `NEXT_PUBLIC_API_URL` en el navegador.
-- Las variables `NEXT_PUBLIC_*` se fijan en el **build**. Si agregas una,
-  pásala como `args` del servicio `web` en `docker-compose.yml` y como
-  `ARG`/`ENV` en `apps/web/Dockerfile`.
-- Prefiere Server Components para leer datos; Client Components solo donde
-  hay interacción.
+**Dónde va cada cosa**
+
+- `src/app/`: solo rutas. Una página es delgada: lee datos en el servidor y
+  renderiza un componente de `features`. Las páginas privadas van dentro del
+  grupo `src/app/(app)/`, cuyo layout verifica la sesión y pone el `AppShell`
+  (navegación y usuario). Cada ruta privada nueva se agrega a `src/proxy.ts`
+  y a la navegación en `src/components/app-nav.tsx`.
+- `src/features/<feature>/`: la pantalla y su lógica (componentes, `types.ts`
+  con la forma de los datos del API). Nada de rutas aquí.
+- `src/components/`: UI compartida entre features (AppShell, formulario de
+  auth, botones). `src/lib/`: utilidades (API, sesión). `src/hooks/`: hooks
+  compartidos, cuando existan.
+- El alias `@/` apunta a `src/`.
+
+**Datos**
+
+- Leer: en server components con `apiFetchServer()` de `src/lib/api-server.ts`.
+  Reenvía la cookie de sesión por la red interna y manda al login si el API
+  responde 401.
+- Escribir: desde client components con `apiFetch()` de `src/lib/api.ts` y
+  después `router.refresh()`, para que el servidor vuelva a leer. No
+  dupliques la lista en estado local ni la "actualices a mano".
+- Los errores del API llegan como `ApiError` (`status`, `message`, `errors`).
+  Muéstralos junto al formulario, en español, diciendo qué corregir.
+- Para llamar al API se usa `apiUrl()`: elige sola `API_URL` (red interna de
+  Docker) en el servidor y `NEXT_PUBLIC_API_URL` en el navegador. Las
+  variables `NEXT_PUBLIC_*` se fijan en el **build**: si agregas una, pásala
+  como `args` del servicio `web` en `docker-compose.yml` y como `ARG`/`ENV`
+  en `apps/web/Dockerfile`.
+
+**Pantallas**
+
+- Server Components por defecto; `"use client"` solo donde hay interacción
+  (formularios, botones, hooks).
+- Toda ruta que lee datos tiene `loading.tsx`; el grupo `(app)` ya tiene un
+  `error.tsx` con reintento. Un vacío es una invitación a actuar ("Todavía no
+  hay notas. Escribe la primera arriba.").
+- Estilo: Tailwind con los tokens de `globals.css` (`text-accent`,
+  `bg-accent`, `text-danger`, `text-foreground`). Un solo acento, sin tarjetas
+  con sombra ni gradientes. Textos en español, en frases, sin mayúsculas
+  sostenidas.
 
 ## Infraestructura
 
@@ -121,4 +194,7 @@ npm run check               # lint + tests + build de api y web, desde la raíz
 docker compose build        # si tocaste Dockerfiles o docker-compose.yml
 ```
 
-Si agregaste modelos, `npm run db:migrate` corrió y la migración está en git.
+Si agregaste una funcionalidad, repasa que tenga las piezas de Notas: módulo
+con schema Zod y service filtrado por usuario, migración en git, página
+delgada dentro de `(app)` con `loading.tsx`, y su entrada en `proxy.ts` y en
+la navegación.

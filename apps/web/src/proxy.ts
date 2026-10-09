@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // Chequeo optimista de sesión: solo mira si existe la cookie, sin tocar la
 // base de datos. La verificación real la hace getSession() en cada página
 // privada. Agrega aquí las rutas que requieren sesión.
-const protectedRoutes = ["/dashboard"];
+const protectedRoutes = ["/dashboard", "/notes"];
 const authRoutes = ["/login", "/register"];
 
 export function proxy(request: NextRequest) {
@@ -22,5 +22,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/register"],
+  matcher: ["/dashboard/:path*", "/notes/:path*", "/login", "/register"],
 };
